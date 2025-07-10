@@ -27,7 +27,7 @@ const App = () => {
     const fetchData = useCallback(async () => {
         if (!auth.user) return;
         try {
-            const healthRes = await fetch(`http://localhost:3001/api/health/${auth.user.id}`);
+            const healthRes = await fetch(`https://careguardian.onrender.com/api/health/${auth.user.id}`);
             const healthJson = await healthRes.json();
             if (healthJson.length > 0) {
                  setHealthData(healthJson);
@@ -36,7 +36,7 @@ const App = () => {
                  setHealthData([]);
                  setLatestHealth({ heartRate: '--', bloodPressure: '--', bloodOxygen: '--', glucose: '--', bodyTemperature: '--' });
             }
-            const contactsRes = await fetch(`http://localhost:3001/api/contacts/${auth.user.id}`);
+            const contactsRes = await fetch(`https://careguardian.onrender.com/api/contacts/${auth.user.id}`);
             const contactsJson = await contactsRes.json();
             setContacts(contactsJson);
         } catch (error) { console.error("Failed to fetch data:", error); }
@@ -96,7 +96,7 @@ const LoginPage = ({ onLoginSuccess }) => {
         setLoading(true);
         setError('');
         try {
-            const response = await fetch(`http://localhost:3001/api/${endpoint}`, {
+            const response = await fetch(`https://careguardian.onrender.com/api/${endpoint}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data),
@@ -249,7 +249,7 @@ const Dashboard = ({ latestHealth, latestEmotion, auth, onLogout }) => {
     
     const handleDeleteAccount = async () => {
         try {
-            const response = await fetch(`http://localhost:3001/api/users/${auth.user.id}`, { method: 'DELETE' });
+            const response = await fetch(`https://careguardian.onrender.com/api/users/${auth.user.id}`, { method: 'DELETE' });
             if (!response.ok) throw new Error("Failed to delete account.");
             setShowDeleteModal(false);
             onLogout();
@@ -352,7 +352,7 @@ const HealthStatus = ({ onHealthUpdate, healthData, auth }) => {
             userId: auth.user.id
         };
         try {
-            const response = await fetch('http://localhost:3001/api/health', {
+            const response = await fetch('https://careguardian.onrender.com/api/health', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(newHealthEntry)
@@ -452,7 +452,7 @@ const EmotionTracker = ({ onEmotionUpdate, auth }) => {
 
     const sendSmsAlert = useCallback(async () => {
         try {
-            await fetch('http://localhost:3001/api/alert', {
+            await fetch('https://careguardian.onrender.com/api/alert', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ userId: auth.user.id, userName: auth.user.name })
@@ -632,7 +632,7 @@ const EmergencyContacts = ({ auth, contacts, setContacts }) => {
     const addContact = async (data) => {
         const newContactData = { ...data, userId: auth.user.id };
         try {
-            const response = await fetch('http://localhost:3001/api/contacts', {
+            const response = await fetch('https://careguardian.onrender.com/api/contacts', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(newContactData)
@@ -649,7 +649,7 @@ const EmergencyContacts = ({ auth, contacts, setContacts }) => {
 
     const deleteContact = async (id) => {
         try {
-            const response = await fetch(`http://localhost:3001/api/contacts/${id}`, { method: 'DELETE' });
+            const response = await fetch(`https://careguardian.onrender.com/api/contacts/${id}`, { method: 'DELETE' });
             if (!response.ok) throw new Error('Failed to delete contact');
             setContacts(contacts.filter(contact => contact.id !== id));
         } catch(error) { console.error(error); }
@@ -658,7 +658,7 @@ const EmergencyContacts = ({ auth, contacts, setContacts }) => {
     const verifyContact = async (contactId) => {
         setVerifyingId(contactId);
         try {
-            const res = await fetch('http://localhost:3001/api/contacts/verify', {
+            const res = await fetch('https://careguardian.onrender.com/api/contacts/verify', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ contactId })
