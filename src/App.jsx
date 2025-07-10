@@ -1,19 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useForm, Controller } from 'react-hook-form';
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { User, Lock, Activity, Heart, Smile, AlertTriangle, Phone, MessageSquare, Bot, X, BarChart2, ShieldCheck, Sun, Moon, Loader2, Sparkles, Send, Info, PhoneCall, Trash2, UserPlus } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useForm } from 'react-hook-form';
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { User, Lock, Activity, Heart, Smile, AlertTriangle, Phone, MessageSquare, Bot, X, BarChart2, ShieldCheck, Sun, Moon, Loader2, Sparkles, Send, Info, PhoneCall, Trash2, UserPlus, BrainCircuit, UserX, Droplet, Thermometer, Zap } from 'lucide-react';
 
-// This data now lives inside the component to fix any potential import errors.
 const countryCodes = [
-  { value: '+1', label: '+1 (USA)' },
-  { value: '+44', label: '+44 (UK)' },
-  { value: '+91', label: '+91 (India)' },
-  { value: '+61', label: '+61 (Australia)' },
-  { value: '+86', label: '+86 (China)' },
-  { value: '+81', label: '+81 (Japan)' },
-  { value: '+49', label: '+49 (Germany)' },
-  { value: '+33', label: '+33 (France)' },
-  { value: '+7', label: '+7 (Russia)' },
+  { value: '+1', label: '+1 (USA)' }, { value: '+44', label: '+44 (UK)' }, { value: '+91', label: '+91 (India)' },
+  { value: '+61', label: '+61 (Australia)' }, { value: '+86', label: '+86 (China)' }, { value: '+81', label: '+81 (Japan)' },
+  { value: '+49', label: '+49 (Germany)' }, { value: '+33', label: '+33 (France)' }, { value: '+7', label: '+7 (Russia)' },
   { value: '+55', label: '+55 (Brazil)' },
 ];
 
@@ -22,25 +15,17 @@ const App = () => {
     const [auth, setAuth] = useState({ token: null, user: null });
     const [currentPage, setCurrentPage] = useState('dashboard');
     const [isDarkMode, setIsDarkMode] = useState(false);
-
     const [healthData, setHealthData] = useState([]);
     const [emotionData, setEmotionData] = useState([]);
-    const [latestHealth, setLatestHealth] = useState({ heartRate: '--', bloodPressure: '--' });
+    const [latestHealth, setLatestHealth] = useState({ heartRate: '--', bloodPressure: '--', bloodOxygen: '--', glucose: '--', bodyTemperature: '--' });
     const [latestEmotion, setLatestEmotion] = useState({ level: 'Safe', message: 'Feeling Calm' });
     const [contacts, setContacts] = useState([]);
 
-    const handleLoginSuccess = (data) => {
-        setAuth({ token: data.token, user: data.user });
-    };
-    
-    const handleLogout = () => {
-        setAuth({ token: null, user: null });
-        setCurrentPage('dashboard');
-    };
+    const handleLoginSuccess = (data) => { setAuth({ token: data.token, user: data.user }); };
+    const handleLogout = () => { setAuth({ token: null, user: null }); setCurrentPage('dashboard'); };
 
-    const fetchData = async () => {
+    const fetchData = useCallback(async () => {
         if (!auth.user) return;
-        
         try {
             const healthRes = await fetch(`http://localhost:3001/api/health/${auth.user.id}`);
             const healthJson = await healthRes.json();
@@ -49,24 +34,19 @@ const App = () => {
                  setLatestHealth(healthJson[healthJson.length-1]);
             } else {
                  setHealthData([]);
-                 setLatestHealth({ heartRate: '--', bloodPressure: '--' });
+                 setLatestHealth({ heartRate: '--', bloodPressure: '--', bloodOxygen: '--', glucose: '--', bodyTemperature: '--' });
             }
-
             const contactsRes = await fetch(`http://localhost:3001/api/contacts/${auth.user.id}`);
             const contactsJson = await contactsRes.json();
             setContacts(contactsJson);
-
-        } catch (error) {
-            console.error("Failed to fetch data:", error);
-        }
-    };
-    
-    useEffect(() => {
-        if (auth.user) {
-            fetchData();
-        }
+        } catch (error) { console.error("Failed to fetch data:", error); }
     }, [auth.user]);
-
+    
+    useEffect(() => { 
+        if(auth.user) {
+            fetchData(); 
+        }
+    }, [auth.user, fetchData]);
 
     const handleHealthUpdate = (newHealthEntry) => {
         const optimisticHealth = { ...newHealthEntry, name: `M${healthData.length + 1}` };
@@ -80,13 +60,7 @@ const App = () => {
         setEmotionData([...emotionData, newEmotionEntry]);
     };
 
-    useEffect(() => {
-        if (isDarkMode) {
-            document.documentElement.classList.add('dark');
-        } else {
-            document.documentElement.classList.remove('dark');
-        }
-    }, [isDarkMode]);
+    useEffect(() => { if (isDarkMode) document.documentElement.classList.add('dark'); else document.documentElement.classList.remove('dark'); }, [isDarkMode]);
 
     if (!auth.token) {
         return <LoginPage onLoginSuccess={handleLoginSuccess} />;
@@ -98,16 +72,9 @@ const App = () => {
             <div className="flex-1 flex flex-col overflow-y-auto">
                 <main className="flex-1 p-4 sm:p-6 lg:p-8">
                     <PageContent 
-                        currentPage={currentPage}
-                        healthData={healthData}
-                        emotionData={emotionData}
-                        latestHealth={latestHealth}
-                        latestEmotion={latestEmotion}
-                        onHealthUpdate={handleHealthUpdate}
-                        onEmotionUpdate={handleEmotionUpdate}
-                        auth={auth}
-                        contacts={contacts}
-                        setContacts={setContacts}
+                        currentPage={currentPage} auth={auth} onLogout={handleLogout}
+                        healthData={healthData} emotionData={emotionData} latestHealth={latestHealth} latestEmotion={latestEmotion} contacts={contacts} setContacts={setContacts}
+                        onHealthUpdate={handleHealthUpdate} onEmotionUpdate={handleEmotionUpdate} 
                     />
                 </main>
                 <Footer />
@@ -122,7 +89,6 @@ const LoginPage = ({ onLoginSuccess }) => {
     const [isLoginView, setIsLoginView] = useState(true);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
-
     const { register, handleSubmit, formState: { errors } } = useForm();
     
     const onSubmit = async (data) => {
@@ -137,7 +103,6 @@ const LoginPage = ({ onLoginSuccess }) => {
             });
             const result = await response.json();
             if (!response.ok) throw new Error(result.message || 'An error occurred.');
-            
             if (isLoginView) {
                 onLoginSuccess(result);
             } else {
@@ -205,11 +170,7 @@ const Navbar = ({ setCurrentPage, isDarkMode, setIsDarkMode, onLogout }) => {
     ];
     
     const [activePage, setActivePage] = useState('dashboard');
-
-    const handleNavClick = (pageId) => {
-        setActivePage(pageId);
-        setCurrentPage(pageId);
-    };
+    const handleNavClick = (pageId) => { setActivePage(pageId); setCurrentPage(pageId); };
 
     return (
         <nav className="w-20 lg:w-64 bg-white dark:bg-gray-800 p-4 flex flex-col justify-between shadow-lg">
@@ -221,14 +182,7 @@ const Navbar = ({ setCurrentPage, isDarkMode, setIsDarkMode, onLogout }) => {
                 <ul>
                     {navItems.map(item => (
                         <li key={item.id} className="mb-2">
-                            <button
-                                onClick={() => handleNavClick(item.id)}
-                                className={`flex items-center w-full p-3 rounded-lg transition-colors duration-200 ${
-                                    activePage === item.id 
-                                        ? 'bg-blue-500 text-white shadow-md' 
-                                        : 'text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-                                }`}
-                            >
+                            <button onClick={() => handleNavClick(item.id)} className={`flex items-center w-full p-3 rounded-lg transition-colors duration-200 ${ activePage === item.id ? 'bg-blue-500 text-white shadow-md' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700' }`}>
                                 <item.icon className="h-6 w-6" />
                                 <span className="hidden lg:block ml-4 font-semibold">{item.label}</span>
                             </button>
@@ -253,105 +207,148 @@ const Navbar = ({ setCurrentPage, isDarkMode, setIsDarkMode, onLogout }) => {
 // Page Content Router
 const PageContent = (props) => {
     switch (props.currentPage) {
-        case 'dashboard':
-            return <Dashboard {...props} />;
-        case 'health':
-            return <HealthStatus {...props} />;
-        case 'emotion':
-            return <EmotionTracker {...props} />;
-        case 'analysis':
-            return <AnalysisCharts {...props} />;
-        case 'emergency':
-            return <EmergencyContacts {...props} />;
-        default:
-            return <Dashboard {...props} />;
+        case 'dashboard': return <Dashboard {...props} />;
+        case 'health': return <HealthStatus {...props} />;
+        case 'emotion': return <EmotionTracker {...props} />;
+        case 'analysis': return <AnalysisCharts {...props} />;
+        case 'emergency': return <EmergencyContacts {...props} />;
+        default: return <Dashboard {...props} />;
     }
 };
 
 // Dashboard Component
-const Dashboard = ({ latestHealth, latestEmotion, healthData, emotionData, auth }) => (
-    <div className="space-y-6 animate-fade-in">
-        <div className="mb-6">
-            <h1 className="text-3xl font-bold text-gray-800 dark:text-white">
-                Welcome, {auth.user.name || 'User'}!
-            </h1>
-            <p className="text-gray-500 dark:text-gray-400 mt-1">Here's your health summary for today.</p>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div className="p-6 bg-white dark:bg-gray-800 rounded-xl shadow-md transform transition-transform hover:scale-105">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Heart Rate</p>
-                        <p className="text-3xl font-bold text-gray-800 dark:text-white">{latestHealth.heartRate} BPM</p>
+const Dashboard = ({ latestHealth, latestEmotion, auth, onLogout }) => {
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [tip, setTip] = useState('');
+    const [isTipLoading, setIsTipLoading] = useState(true);
+
+    const getTipOfTheDay = useCallback(async () => {
+        setIsTipLoading(true);
+        try {
+            const prompt = "Give me a short, inspiring, and actionable health or wellness tip for the day. Keep it under 30 words.";
+            const payload = { contents: [{ role: "user", parts: [{ text: prompt }] }] };
+            const apiKey = "AIzaSyBPFGv8HZ8AX9g756uRczKdQQAuz64XS9c";
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+            const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+            if (!response.ok) throw new Error("Failed to get tip.");
+            const data = await response.json();
+            if (data.candidates && data.candidates.length > 0) {
+                setTip(data.candidates[0].content.parts[0].text);
+            }
+        } catch (error) {
+            console.error(error);
+            setTip("Remember to stay hydrated and take a moment for yourself today!");
+        } finally {
+            setIsTipLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        getTipOfTheDay();
+    }, [getTipOfTheDay]);
+    
+    const handleDeleteAccount = async () => {
+        try {
+            const response = await fetch(`http://localhost:3001/api/users/${auth.user.id}`, { method: 'DELETE' });
+            if (!response.ok) throw new Error("Failed to delete account.");
+            setShowDeleteModal(false);
+            onLogout();
+        } catch (error) {
+            console.error(error);
+            alert("Error: Could not delete account.");
+        }
+    };
+
+    const getRiskColor = (level) => {
+        if (level === 'Danger') return 'text-red-500';
+        if (level === 'Warning') return 'text-amber-500';
+        return 'text-green-500';
+    };
+
+    return (
+        <>
+        <div className="space-y-6 animate-fade-in">
+            <div className="mb-6">
+                <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Welcome, {auth.user.name || 'User'}!</h1>
+                <p className="text-gray-500 dark:text-gray-400 mt-1">Here's your real-time health summary.</p>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                 <div className="p-6 bg-white dark:bg-gray-800 rounded-xl shadow-md">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Current Mood</p>
+                            <p className={`text-3xl font-bold ${getRiskColor(latestEmotion.level)}`}>{latestEmotion.level}</p>
+                        </div>
+                        <Smile className={`w-12 h-12 ${getRiskColor(latestEmotion.level)}`}/>
                     </div>
-                    <Heart className="w-12 h-12 text-red-500"/>
+                </div>
+                <div className="p-6 bg-white dark:bg-gray-800 rounded-xl shadow-md">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Heart Rate</p>
+                            <p className="text-3xl font-bold text-gray-800 dark:text-white">{latestHealth.heartRate} BPM</p>
+                        </div>
+                        <Heart className="w-12 h-12 text-red-500"/>
+                    </div>
+                </div>
+                <div className="p-6 bg-white dark:bg-gray-800 rounded-xl shadow-md">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Blood Oxygen</p>
+                            <p className="text-3xl font-bold text-gray-800 dark:text-white">{latestHealth.bloodOxygen}%</p>
+                        </div>
+                        <Droplet className="w-12 h-12 text-blue-500"/>
+                    </div>
                 </div>
             </div>
-            <div className="p-6 bg-white dark:bg-gray-800 rounded-xl shadow-md transform transition-transform hover:scale-105">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Current Mood</p>
-                        <p className="text-3xl font-bold text-gray-800 dark:text-white">{latestEmotion.message.split(' ')[2] || 'Calm'}</p>
-                    </div>
-                     <Smile className={`w-12 h-12 ${latestEmotion.level === 'Safe' ? 'text-green-500' : latestEmotion.level === 'Warning' ? 'text-amber-500' : 'text-red-500'}`}/>
-                </div>
+
+            <div className="p-6 bg-white dark:bg-gray-800 rounded-xl shadow-md">
+                <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-3 flex items-center gap-2">
+                    <Zap className="text-yellow-400" /> Tip of the Day
+                </h2>
+                {isTipLoading ? <Loader2 className="animate-spin" /> : <p className="text-gray-600 dark:text-gray-300">{tip}</p>}
             </div>
-            <div className="p-6 bg-white dark:bg-gray-800 rounded-xl shadow-md transform transition-transform hover:scale-105">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Risk Level</p>
-                        <p className={`text-3xl font-bold ${latestEmotion.level === 'Safe' ? 'text-green-500' : latestEmotion.level === 'Warning' ? 'text-amber-500' : 'text-red-500'}`}>{latestEmotion.level}</p>
-                    </div>
-                    <ShieldCheck className={`w-12 h-12 ${latestEmotion.level === 'Safe' ? 'text-green-500' : latestEmotion.level === 'Warning' ? 'text-amber-500' : 'text-red-500'}`}/>
-                </div>
+
+            <div className="p-6 bg-white dark:bg-gray-800 rounded-xl shadow-md mt-8">
+                <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-4">Account Settings</h2>
+                <button onClick={() => setShowDeleteModal(true)} className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition-colors">
+                    <UserX className="w-5 h-5" />
+                    Delete My Account
+                </button>
             </div>
         </div>
         
-        <div className="p-6 bg-white dark:bg-gray-800 rounded-xl shadow-md">
-            <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-4">Quick Health Suggestion</h2>
-            <p className="text-gray-600 dark:text-gray-300">Your vitals look good. Remember to stay hydrated and take a short walk today to maintain your great health!</p>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="p-6 bg-white dark:bg-gray-800 rounded-xl shadow-md">
-                <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-4">Heart Rate Trend</h2>
-                <ResponsiveContainer width="100%" height={250}>
-                    <LineChart data={healthData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
-                        <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.2} />
-                        <XAxis dataKey="name" stroke="#9ca3af" />
-                        <YAxis stroke="#9ca3af" />
-                        <Tooltip contentStyle={{ backgroundColor: 'rgba(31, 41, 55, 0.8)', border: 'none', borderRadius: '0.5rem' }} />
-                        <Legend />
-                        <Line type="monotone" dataKey="heartRate" stroke="#ef4444" strokeWidth={2} activeDot={{ r: 8 }} />
-                    </LineChart>
-                </ResponsiveContainer>
+        {showDeleteModal && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div className="bg-white dark:bg-gray-800 p-8 rounded-xl shadow-2xl max-w-sm w-full">
+                    <h3 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">Are you sure?</h3>
+                    <p className="text-gray-600 dark:text-gray-300 mb-6">This action is irreversible. All your health data, emergency contacts, and account details will be permanently deleted.</p>
+                    <div className="flex justify-end gap-4">
+                        <button onClick={() => setShowDeleteModal(false)} className="px-4 py-2 bg-gray-200 dark:bg-gray-600 font-semibold rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500">Cancel</button>
+                        <button onClick={handleDeleteAccount} className="px-4 py-2 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700">Yes, Delete</button>
+                    </div>
+                </div>
             </div>
-             <div className="p-6 bg-white dark:bg-gray-800 rounded-xl shadow-md">
-                <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-4">Emotion Level Trend</h2>
-                <ResponsiveContainer width="100%" height={250}>
-                    <BarChart data={emotionData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
-                        <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.2} />
-                        <XAxis dataKey="name" stroke="#9ca3af" />
-                        <YAxis stroke="#9ca3af" />
-                        <Tooltip contentStyle={{ backgroundColor: 'rgba(31, 41, 55, 0.8)', border: 'none', borderRadius: '0.5rem' }} />
-                        <Legend />
-                        <Bar dataKey="level" fill="#22c55e" />
-                    </BarChart>
-                </ResponsiveContainer>
-            </div>
-        </div>
-    </div>
-);
+        )}
+        </>
+    );
+};
 
 
 // Health Status Component
 const HealthStatus = ({ onHealthUpdate, healthData, auth }) => {
     const { register, handleSubmit, reset } = useForm();
+    const [aiSuggestion, setAiSuggestion] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
     
     const handleUpdate = async (data) => {
         const newHealthEntry = {
             heartRate: parseInt(data.heartRate),
             bloodPressure: parseInt(data.bloodPressure),
+            bloodOxygen: parseInt(data.bloodOxygen),
+            glucose: parseInt(data.glucose),
+            bodyTemperature: parseFloat(data.bodyTemperature),
             userId: auth.user.id
         };
         try {
@@ -361,13 +358,37 @@ const HealthStatus = ({ onHealthUpdate, healthData, auth }) => {
                 body: JSON.stringify(newHealthEntry)
             });
             if (!response.ok) throw new Error("Failed to save health data");
-
             onHealthUpdate(newHealthEntry);
             reset();
-
         } catch (error) {
             console.error(error);
         }
+    };
+
+    const getAiHealthSuggestion = async () => {
+        setIsLoading(true);
+        setAiSuggestion('');
+        try {
+            const latestHealth = healthData[healthData.length-1];
+            if (!latestHealth) {
+                setAiSuggestion("No health data available to generate suggestions.");
+                setIsLoading(false);
+                return;
+            }
+            const prompt = `A user has the following health vitals: Heart Rate: ${latestHealth.heartRate} BPM, Systolic BP: ${latestHealth.bloodPressure} mmHg, Blood Oxygen: ${latestHealth.bloodOxygen}%, Glucose: ${latestHealth.glucose} mg/dL, Body Temperature: ${latestHealth.bodyTemperature}°C. Provide a concise, actionable health suggestion for each metric. Format the response with clear headings for each metric.`;
+            const payload = { contents: [{ role: "user", parts: [{ text: prompt }] }] };
+            const apiKey = "AIzaSyBPFGv8HZ8AX9g756uRczKdQQAuz64XS9c";
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+            const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+            if (!response.ok) throw new Error("API request failed");
+            const result = await response.json();
+            if (result.candidates && result.candidates.length > 0) {
+              setAiSuggestion(result.candidates[0].content.parts[0].text);
+            } else { throw new Error("No content received from AI."); }
+        } catch (err) {
+            console.error(err);
+            setAiSuggestion('Sorry, I couldn\'t fetch AI suggestions right now. Please try again later.');
+        } finally { setIsLoading(false); }
     };
 
     return (
@@ -376,33 +397,45 @@ const HealthStatus = ({ onHealthUpdate, healthData, auth }) => {
             
             <div className="p-6 bg-white dark:bg-gray-800 rounded-xl shadow-md">
                 <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-4">Update Your Health Vitals</h2>
-                <form onSubmit={handleSubmit(handleUpdate)} className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-                    <div className="w-full">
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Heart Rate (BPM)</label>
-                        <input type="number" {...register("heartRate", { required: true })} placeholder="e.g., 75" className="mt-1 w-full p-2 bg-gray-100 dark:bg-gray-700 dark:text-white rounded-lg"/>
+                <form onSubmit={handleSubmit(handleUpdate)} className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Heart Rate (BPM)</label>
+                            <input type="number" {...register("heartRate", { required: true })} placeholder="e.g., 75" className="mt-1 w-full p-2 bg-gray-100 dark:bg-gray-700 rounded-lg"/>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Systolic BP (mmHg)</label>
+                            <input type="number" {...register("bloodPressure", { required: true })} placeholder="e.g., 120" className="mt-1 w-full p-2 bg-gray-100 dark:bg-gray-700 rounded-lg"/>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Blood Oxygen (%)</label>
+                            <input type="number" {...register("bloodOxygen", { required: true })} placeholder="e.g., 98" className="mt-1 w-full p-2 bg-gray-100 dark:bg-gray-700 rounded-lg"/>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Glucose (mg/dL)</label>
+                            <input type="number" {...register("glucose", { required: true })} placeholder="e.g., 90" className="mt-1 w-full p-2 bg-gray-100 dark:bg-gray-700 rounded-lg"/>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Body Temp (°C)</label>
+                            <input type="number" step="0.1" {...register("bodyTemperature", { required: true })} placeholder="e.g., 36.6" className="mt-1 w-full p-2 bg-gray-100 dark:bg-gray-700 rounded-lg"/>
+                        </div>
                     </div>
-                     <div className="w-full">
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Systolic BP (mmHg)</label>
-                        <input type="number" {...register("bloodPressure", { required: true })} placeholder="e.g., 120" className="mt-1 w-full p-2 bg-gray-100 dark:bg-gray-700 dark:text-white rounded-lg"/>
-                    </div>
-                    <button type="submit" className="w-full py-2 px-4 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 transition-colors">Update Vitals</button>
+                    <button type="submit" className="w-full mt-4 py-2 px-4 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600">Update Vitals</button>
                 </form>
             </div>
             
-             <div className="p-6 bg-white dark:bg-gray-800 rounded-xl shadow-md">
-                <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-4">Detailed Health Metrics</h2>
-                <ResponsiveContainer width="100%" height={300}>
-                    <LineChart data={healthData}>
-                        <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.2} />
-                        <XAxis dataKey="name" stroke="#9ca3af"/>
-                        <YAxis yAxisId="left" stroke="#ef4444" />
-                        <YAxis yAxisId="right" orientation="right" stroke="#3b82f6" />
-                        <Tooltip contentStyle={{ backgroundColor: 'rgba(31, 41, 55, 0.8)', border: 'none', borderRadius: '0.5rem' }}/>
-                        <Legend />
-                        <Line yAxisId="left" type="monotone" dataKey="heartRate" stroke="#ef4444" strokeWidth={2} name="Heart Rate (BPM)" />
-                        <Line yAxisId="right" type="monotone" dataKey="bloodPressure" stroke="#3b82f6" strokeWidth={2} name="Systolic BP (mmHg)" />
-                    </LineChart>
-                </ResponsiveContainer>
+            <div className="p-6 bg-white dark:bg-gray-800 rounded-xl shadow-md">
+                <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-4">AI-Powered Health Suggestions</h2>
+                <button onClick={getAiHealthSuggestion} disabled={isLoading} className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-indigo-500 text-white font-semibold rounded-lg hover:from-purple-600 hover:to-indigo-600 disabled:opacity-50">
+                    {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <BrainCircuit className="w-5 h-5" />}
+                    {isLoading ? 'Generating...' : '✨ Get AI Health Suggestions'}
+                </button>
+                 {aiSuggestion && (
+                    <div className="mt-4 p-4 bg-gray-100 dark:bg-gray-700 rounded-lg">
+                        <p className="text-gray-700 dark:text-gray-200 whitespace-pre-wrap">{aiSuggestion}</p>
+                        <p className="text-xs text-right mt-2 text-indigo-400">Powered by Gemini</p>
+                    </div>
+                )}
             </div>
         </div>
     );
@@ -412,11 +445,12 @@ const HealthStatus = ({ onHealthUpdate, healthData, auth }) => {
 const EmotionTracker = ({ onEmotionUpdate, auth }) => {
     const [text, setText] = useState('');
     const [result, setResult] = useState(null);
+    const [suggestion, setSuggestion] = useState('');
     const [showAlert, setShowAlert] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
 
-    const sendSmsAlert = async () => {
+    const sendSmsAlert = useCallback(async () => {
         try {
             await fetch('http://localhost:3001/api/alert', {
                 method: 'POST',
@@ -426,6 +460,23 @@ const EmotionTracker = ({ onEmotionUpdate, auth }) => {
         } catch (error) {
             console.error("Failed to send SMS alert:", error);
         }
+    }, [auth]);
+    
+    const getAiSuggestion = async (userInput, mood) => {
+        try {
+            const prompt = `A user is feeling "${mood}". Their input was: "${userInput}". Provide a short, compassionate, and actionable suggestion to help them. Keep it under 50 words.`;
+            const payload = { contents: [{ role: "user", parts: [{ text: prompt }] }] };
+            const apiKey = "AIzaSyBPFGv8HZ8AX9g756uRczKdQQAuz64XS9c";
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+            const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+            if (!response.ok) return;
+            const data = await response.json();
+            if (data.candidates && data.candidates.length > 0) {
+                setSuggestion(data.candidates[0].content.parts[0].text);
+            }
+        } catch (error) {
+            console.log("Could not fetch suggestion.");
+        }
     };
 
     const analyzeEmotionWithAI = async () => {
@@ -433,98 +484,101 @@ const EmotionTracker = ({ onEmotionUpdate, auth }) => {
         setIsLoading(true);
         setError('');
         setResult(null);
+        setSuggestion('');
         setShowAlert(false);
 
         try {
             const prompt = `Analyze sentiment from: "${text}". Categorize as 'Danger', 'Warning', or 'Safe'. Respond ONLY with JSON: {"level": "...", "message": "..."}.`;
-            
-            const payload = {
-                contents: [{ role: "user", parts: [{ text: prompt }] }],
-                generationConfig: { responseMimeType: "application/json" }
-            };
+            const payload = { contents: [{ role: "user", parts: [{ text: prompt }] }], generationConfig: { responseMimeType: "application/json" } };
             const apiKey = "AIzaSyBPFGv8HZ8AX9g756uRczKdQQAuz64XS9c";
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
-
             const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-            if (!response.ok) throw new Error(`API request failed`);
+            if (!response.ok) throw new Error("API request failed");
             const apiResult = await response.json();
             
             if (apiResult.candidates && apiResult.candidates.length > 0) {
-                const jsonText = apiResult.candidates[0].content.parts[0].text;
-                const parsedResult = JSON.parse(jsonText);
+                const parsedResult = JSON.parse(apiResult.candidates[0].content.parts[0].text);
                 setResult(parsedResult);
                 onEmotionUpdate(parsedResult);
+                getAiSuggestion(text, parsedResult.level);
                 
                 if (parsedResult.level === 'Danger' || parsedResult.level === 'Warning') {
                     setShowAlert(true);
                     sendSmsAlert();
                 }
-            } else { throw new Error("No content from API."); }
+            } else { throw new Error("No content from AI."); }
         } catch (err) {
             console.error(err);
             setError('Could not analyze mood. Please try again.');
         } finally { setIsLoading(false); }
     };
     
-    const getRiskColor = (level) => {
-        if (level === 'Danger') return 'text-red-500 border-red-500';
-        if (level === 'Warning') return 'text-amber-500 border-amber-500';
-        return 'text-green-500 border-green-500';
-    };
-
     return (
         <div className="space-y-6 animate-fade-in">
-            <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Emotion Tracker</h1>
+             <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Emotion Tracker</h1>
             <div className="p-6 bg-white dark:bg-gray-800 rounded-xl shadow-md">
                 <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-4">How are you feeling today?</h2>
-                <textarea value={text} onChange={(e) => setText(e.target.value)} placeholder="Describe your feelings..." className="w-full p-3 bg-gray-100 dark:bg-gray-700 dark:text-white rounded-lg" rows="4"></textarea>
-                <button onClick={analyzeEmotionWithAI} disabled={isLoading} className="mt-4 flex items-center justify-center gap-2 px-6 py-2 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 disabled:opacity-50">
+                <textarea value={text} onChange={(e) => setText(e.target.value)} placeholder="Describe your feelings..." className="w-full p-3 bg-gray-100 dark:bg-gray-700 rounded-lg" rows="4"></textarea>
+                <button onClick={analyzeEmotionWithAI} disabled={isLoading} className="mt-4 flex items-center gap-2 px-6 py-2 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 disabled:opacity-50">
                     {isLoading ? <Loader2 className="w-5 h-5 animate-spin"/> : <Sparkles className="w-5 h-5"/>}
                     {isLoading ? 'Analyzing...' : '✨ Analyze with AI'}
                 </button>
             </div>
-             {error && <p className="mt-4 text-sm text-center text-red-500">{error}</p>}
-            {result && (
-                <div className={`p-6 bg-white dark:bg-gray-800 rounded-xl shadow-md border-l-4 ${getRiskColor(result.level).split(' ')[1]}`}>
+             {suggestion && (
+                <div className="p-6 bg-blue-50 dark:bg-blue-900/50 rounded-xl border-l-4 border-blue-400">
                     <div className="flex items-center gap-4">
-                        <AlertTriangle className={`w-8 h-8 ${getRiskColor(result.level).split(' ')[0]}`} />
+                        <BrainCircuit className="w-8 h-8 text-blue-500" />
                         <div>
-                            <h3 className={`text-2xl font-bold ${getRiskColor(result.level).split(' ')[0]}`}>{result.level}</h3>
-                            <p className="text-gray-600 dark:text-gray-300 mt-1">{result.message}</p>
-                            <p className="text-xs text-right mt-2 text-indigo-400">Powered by Gemini</p>
+                            <h3 className="text-xl font-bold text-blue-800 dark:text-blue-300">AI Suggestion</h3>
+                            <p className="text-gray-600 dark:text-gray-300 mt-1">{suggestion}</p>
+                             <p className="text-xs text-right mt-2 text-indigo-400">Powered by Gemini</p>
                         </div>
                     </div>
                 </div>
-            )}
-             {showAlert && (
-                <div className="p-4 bg-red-100 dark:bg-red-900/50 border-l-4 border-red-500 rounded-r-lg" role="alert">
-                    <div className="flex">
-                        <div className="py-1"><AlertTriangle className="h-6 w-6 text-red-500 mr-4"/></div>
-                        <div>
-                            <p className="font-bold text-red-800 dark:text-red-200">Emergency Alert Sent</p>
-                            <p className="text-sm text-red-700 dark:text-red-300">An SMS notification has been sent to your primary emergency contact.</p>
-                        </div>
-                    </div>
-                </div>
-            )}
+             )}
         </div>
     );
 };
 
-
-// Analysis Charts Component
+// AnalysisCharts Component
 const AnalysisCharts = ({ healthData, emotionData }) => {
-    const emotionDistributionData = [
-        { name: 'Safe', value: 65 }, { name: 'Warning', value: 25 }, { name: 'Danger', value: 10 },
-    ];
-    const COLORS = { 'Safe': '#22c55e', 'Warning': '#f59e0b', 'Danger': '#ef4444' };
+    const [report, setReport] = useState('');
+    const [isReportLoading, setIsReportLoading] = useState(false);
+    
+    const getHealthReport = async () => {
+        setIsReportLoading(true);
+        setReport('');
+        try {
+            if (healthData.length === 0) {
+                setReport("Not enough data to generate a report. Please add more health vitals.");
+                setIsReportLoading(false);
+                return;
+            }
+            const prompt = `Analyze the following health data trend for a user: ${JSON.stringify(healthData)}. Provide a 'Predictive Health Report' summarizing potential future risks or positive trends based on this data. Mention heart rate, blood pressure, and blood oxygen specifically. Keep it concise, around 60-80 words.`;
+            const payload = { contents: [{ role: "user", parts: [{ text: prompt }] }] };
+            const apiKey = "AIzaSyBPFGv8HZ8AX9g756uRczKdQQAuz64XS9c";
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+            const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+            if (!response.ok) throw new Error("Failed to get report.");
+            const data = await response.json();
+            if (data.candidates && data.candidates.length > 0) {
+                setReport(data.candidates[0].content.parts[0].text);
+            }
+        } catch (error) {
+            console.error(error);
+            setReport("Could not generate the predictive report at this time.");
+        } finally {
+            setIsReportLoading(false);
+        }
+    };
 
     return (
     <div className="space-y-6 animate-fade-in">
         <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Health & Mental Analysis</h1>
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="p-6 bg-white dark:bg-gray-800 rounded-xl shadow-md">
-                <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-4">Comprehensive Health Trend</h2>
+                <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-4">Health Vitals Trend</h2>
                 <ResponsiveContainer width="100%" height={300}>
                     <LineChart data={healthData}>
                         <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.2} />
@@ -534,6 +588,7 @@ const AnalysisCharts = ({ healthData, emotionData }) => {
                         <Legend />
                         <Line type="monotone" dataKey="heartRate" name="Heart Rate" stroke="#ef4444" strokeWidth={2}/>
                         <Line type="monotone" dataKey="bloodPressure" name="Blood Pressure" stroke="#3b82f6" strokeWidth={2}/>
+                        <Line type="monotone" dataKey="bloodOxygen" name="Blood Oxygen" stroke="#10b981" strokeWidth={2}/>
                     </LineChart>
                 </ResponsiveContainer>
             </div>
@@ -551,24 +606,25 @@ const AnalysisCharts = ({ healthData, emotionData }) => {
                 </ResponsiveContainer>
             </div>
         </div>
-         <div className="p-6 bg-white dark:bg-gray-800 rounded-xl shadow-md">
-            <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-4">Overall Emotion Risk Distribution</h2>
-            <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                    <Pie data={emotionDistributionData} cx="50%" cy="50%" labelLine={false} outerRadius={120} fill="#8884d8" dataKey="value" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
-                        {emotionDistributionData.map((entry, index) => (<Cell key={`cell-${index}`} fill={COLORS[entry.name]} />))}
-                    </Pie>
-                    <Tooltip contentStyle={{ backgroundColor: 'rgba(31, 41, 55, 0.8)', border: 'none', borderRadius: '0.5rem' }}/>
-                    <Legend />
-                </PieChart>
-            </ResponsiveContainer>
+        
+        <div className="p-6 bg-white dark:bg-gray-800 rounded-xl shadow-md">
+            <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-4">Predictive Health Report</h2>
+            <button onClick={getHealthReport} disabled={isReportLoading} className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-indigo-500 text-white font-semibold rounded-lg hover:from-purple-600 hover:to-indigo-600 transition-all disabled:opacity-50">
+                {isReportLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <BrainCircuit className="w-5 h-5" />}
+                {isReportLoading ? 'Generating Report...' : '✨ Generate AI Report'}
+            </button>
+            {report && (
+                <div className="mt-4 p-4 bg-gray-100 dark:bg-gray-700 rounded-lg">
+                    <p className="text-gray-700 dark:text-gray-200 whitespace-pre-wrap">{report}</p>
+                    <p className="text-xs text-right mt-2 text-indigo-400">Powered by Gemini</p>
+                </div>
+            )}
         </div>
     </div>
     );
 };
 
-
-// Emergency Contacts Component
+// Emergency Contacts, Chatbot, and Footer Components
 const EmergencyContacts = ({ auth, contacts, setContacts }) => {
     const { register, handleSubmit, formState: { errors }, reset } = useForm();
     const [verifyingId, setVerifyingId] = useState(null);
@@ -716,7 +772,7 @@ const Chatbot = () => {
             const prompt = `You are Guardian Bot, a friendly and empathetic AI health assistant for a caretaking app. Your name is Guardian Bot. Keep your responses concise and helpful. Refer to different sections of the app if relevant (Dashboard, Health Status, Emotion Tracker, Analysis, Emergency). Here is the conversation so far:`;
 
             const payload = { contents: [ { role: "model", parts: [{ text: prompt }] }, ...chatHistory.current] };
-            const apiKey = "";
+            const apiKey = "AIzaSyBPFGv8HZ8AX9g756uRczKdQQAuz64XS9c";
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
             const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
 
